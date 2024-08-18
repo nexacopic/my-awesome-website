@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>viz!1!1</title>
+    <link rel="stylesheet" href="/main.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const apiUrl = `https://api.github.com/repos/nexacopic/my-awesome-website/commits`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(commits => {
+                    const commitList = document.getElementById('commit-list');
+                    commits.forEach(commit => {
+                        const commitElement = document.createElement('a');
+                        commitElement.href = commit.html_url;
+                        commitElement.className = 'normal';
+                        commitElement.textContent = commit.commit.message;
+                        commitList.appendChild(commitElement);
+                        commitList.appendChild(document.createElement('br')); 
+                    });
+                })
+                .catch(error => console.error('Error fetching commit data:', error));
+        });
+    </script>
+</head>
+<body>
+    <div class="hbox">
+        <a href="/index.html"><img src="/static/logo.gif"></a>
+        <a href="/pages/projects.html" class="button">projects</a>
+        <a class="button">/</a>
+        <a href="/pages/other.html" class="button">other</a>
+        <a class="button">/</a>
+        <a href="/pages/experiments.html" class="button">experiments</a>
+    </div>
+    <div class="center box vbox">
+        <h1 class="center">CHANGELOG</h1>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <h2 class="center">Commit history</h2>
+        <div id="commit-list"></div>
+    </div>
+</body>
+</html>
