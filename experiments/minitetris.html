@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!-- minitetris - viz :3 -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniTetris</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a, #333);
+            color: #f0f0f0;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            overflow: hidden;
+        }
+
+        canvas {
+            background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 100%);
+            border: 5px dashed #f0f0f0;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            display: block;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0);
+            padding: 10px 20px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #f0f0f0;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="tetrisCanvas" width="300" height="600"></canvas>
+<div id="score">Score: 0</div>
+<div id="startScreen">Click to Start</div>
+
+<script>
+const canvas = document.getElementById("tetrisCanvas");
+const context = canvas.getContext("2d");
+const startScreen = document.getElementById("startScreen");
+const grid = 30;
+const rowCount = canvas.height / grid;
+const colCount = canvas.width / grid;
+
+const tetrominoes = [
+    { // I
+        color: 'cyan',
+        shape: [[1, 1, 1, 1]]
+    },
+    { // J
+        color: 'blue',
+        shape: [
+            [0, 0, 1],
+            [1, 1, 1]
+        ]
+    },
+    { // L
+        color: 'orange',
+        shape: [
+            [1, 0, 0],
+            [1, 1, 1]
+        ]
+    },
+    { // O
+        color: 'yellow',
+        shape: [
+            [1, 1],
+            [1, 1]
+        ]
+    },
+    { // S
+        color: 'green',
+        shape: [
+            [0, 1, 1],
+            [1, 1, 0]
+        ]
+    },
+    { // T
+        color: 'purple',
+        shape: [
+            [0, 1, 0],
+            [1, 1, 1]
+        ]
+    },
+    { // Z
+        color: 'red',
+        shape: [
+            [1, 1, 0],
+            [0, 1, 1]
+        ]
+    },
+    {
+        color: 'pink',
+        shape: [
+            [0, 1, 1, 1],
+            [1, 1, 1, 0]
+        ]
+    },
+];
+
+
+let board = Array.from({ length: rowCount }, () => Array(colCount).fill(0));
+let currentTetromino, currentX, currentY;
+let intervalId;
+let score = 0;
+
+function drawRect(x, y, color) {
+    context.fillStyle = color;
+    context.fillRect(x * grid, y * grid, grid, grid);
+    context.strokeStyle = '#000';
+    context.strokeRect(x * grid, y * grid, grid, grid);
+}
+
+function drawBoard() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    for (let y = 0; y < rowCount; y++) {
+        for (let x = 0; x < colCount; x++) {
+            if (board[y][x]) {
+                drawRect(x, y, board[y][x]);
+            }
+        }
+    }
+}
+
+function drawTetromino() {
+    for (let y = 0; y < currentTetromino.shape.length; y++) {
+        for (let x = 0; x < currentTetromino.shape[y].length; x++) {
+            if (currentTetromino.shape[y][x]) {
+                drawRect(currentX + x, currentY + y, currentTetromino.color);
+            }
+        }
+    }
+}
+
+function collision(xOffset, yOffset, shape) {
+    for (let y = 0; y < shape.length; y++) {
+        for (let x = 0; x < shape[y].length; x++) {
+            if (shape[y][x]) {
+                const boardX = currentX + x + xOffset;
+                const boardY = currentY + y + yOffset;
+                if (boardX < 0 || boardX >= colCount || boardY >= rowCount || board[boardY][boardX]) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function rotate() {
+    const originalShape = currentTetromino.shape;
+    const rotatedShape = currentTetromino.shape[0].map((_, i) => currentTetromino.shape.map(row => row[i]).reverse());
+    currentTetromino.shape = rotatedShape;
+    if (collision(0, 0, currentTetromino.shape)) {
+        currentTetromino.shape = originalShape;
+    }
+}
+
+function move(direction) {
+    const offsetX = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
+    const offsetY = direction === 'down' ? 1 : 0;
+
+    if (offsetX !== 0) {
+ 
+        if (currentX + offsetX < 0 || currentX + offsetX + currentTetromino.shape[0].length > colCount) {
+            return;
+        }
+    }
+
+    if (!collision(offsetX, offsetY, currentTetromino.shape)) {
+        currentX += offsetX;
+        currentY += offsetY;
+
+        if (direction === 'down') {
+            drop();
+        }
+    } else if (direction === 'down') {
+        placeTetromino();
+        removeLines();
+        spawnTetromino();
+        if (collision(0, 0, currentTetromino.shape)) {
+            gameOver();
+        }
+    }
+}
+
+
+function drop() {
+    if (collision(0, 1, currentTetromino.shape)) {
+        placeTetromino();
+        removeLines();
+        spawnTetromino();
+        if (collision(0, 0, currentTetromino.shape)) {
+            gameOver();
+        }
+    } else {
+        currentY++;
+    }
+}
+
+function placeTetromino() {
+    for (let y = 0; y < currentTetromino.shape.length; y++) {
+        for (let x = 0; x < currentTetromino.shape[y].length; x++) {
+            if (currentTetromino.shape[y][x]) {
+                board[currentY + y][currentX + x] = currentTetromino.color;
+            }
+        }
+    }
+}
+
+function removeLines() {
+    for (let y = rowCount - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell !== 0)) {
+            board.splice(y, 1);
+            board.unshift(Array(colCount).fill(0));
+            score += 100;
+            document.getElementById("score").textContent = `Score: ${score}`;
+        }
+    }
+}
+
+function gameOver() {
+    clearInterval(intervalId);
+    alert(`Game Over! Final Score: ${score}`);
+    startScreen.style.display = 'block'; // Show the start screen
+}
+
+function randomTetromino() {
+    return tetrominoes[Math.floor(Math.random() * tetrominoes.length)];
+}
+
+function spawnTetromino() {
+    currentTetromino = randomTetromino();
+    currentX = Math.floor(colCount / 2) - Math.floor(currentTetromino.shape[0].length / 2);
+    currentY = 0;
+}
+
+function startGame() {
+    startScreen.style.display = 'none'; // Hide the start screen
+    board = Array.from({ length: rowCount }, () => Array(colCount).fill(0));
+    score = 0;
+    document.getElementById("score").textContent = `Score: ${score}`;
+    spawnTetromino();
+    intervalId = setInterval(() => move('down'), 500);
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoop() {
+    drawBoard();
+    drawTetromino();
+    requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') move('left');
+    if (e.key === 'ArrowRight') move('right');
+    if (e.key === 'ArrowDown') move('down');
+    if (e.key === 'ArrowUp') rotate();
+});
+
+startScreen.addEventListener('click', startGame);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!-- minipong - viz :3 -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniPong</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a, #333);
+            color: #f0f0f0;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            overflow: hidden;
+        }
+
+        canvas {
+            background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 100%);
+            border: 5px dashed #f0f0f0;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            display: block;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0);
+            padding: 10px 20px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #f0f0f0;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="pongCanvas" width="600" height="400"></canvas>
+<div id="score">you 0 <br> cpu 0</div>
+<div id="startScreen">Click to Start</div>
+
+<script>
+const canvas = document.getElementById("pongCanvas");
+const context = canvas.getContext("2d");
+const startScreen = document.getElementById("startScreen");
+
+const ball = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 10,
+    speed: 5,
+    velocityX: 5,
+    velocityY: 5,
+    color: "lime",
+    glowColor: "lime"
+};
+
+const paddleWidth = 10;
+const paddleHeight = 100;
+const paddleSpeed = 8;
+
+const player = {
+    x: 25,
+    y: (canvas.height - paddleHeight) / 2,
+    width: paddleWidth,
+    height: paddleHeight,
+    color: "deepskyblue",
+    glowColor: "deepskyblue",
+    score: 0
+};
+
+const ai = {
+    x: canvas.width - paddleWidth - 20,
+    y: (canvas.height - paddleHeight) / 2,
+    width: paddleWidth,
+    height: paddleHeight,
+    color: "tomato",
+    glowColor: "tomato",
+    score: 0
+};
+
+let lastTime = 0;
+let gameStarted = false;
+
+function drawRect(x, y, w, h, color, glowColor) {
+    context.fillStyle = glowColor;
+    context.shadowColor = glowColor;
+    context.shadowBlur = 10;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
+    context.fillRect(x, y, w, h);
+    context.shadowBlur = 0; // Reset shadow blur
+}
+
+function drawCircle(x, y, r, color, glowColor) {
+    context.fillStyle = glowColor;
+    context.shadowColor = glowColor;
+    context.shadowBlur = 10;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
+    context.beginPath();
+    context.arc(x, y, r, 0, Math.PI * 2, false);
+    context.closePath();
+    context.fill();
+    context.shadowBlur = 0; // Reset shadow blur
+}
+
+function drawText(text, x, y, color) {
+    context.fillStyle = color;
+    context.font = "24px 'Comic Sans MS', cursive";
+    context.fillText(text, x, y);
+}
+
+function movePaddle(event) {
+    if (!gameStarted) return;
+
+    const rect = canvas.getBoundingClientRect();
+    player.y = event.clientY - rect.top - player.height / 2;
+}
+
+canvas.addEventListener("mousemove", movePaddle);
+
+function resetBall() {
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.velocityX = -5;
+    ball.velocityY = 0;
+}
+
+function collision(b, p) {
+    p.top = p.y;
+    p.bottom = p.y + p.height;
+    p.left = p.x;
+    p.right = p.x + p.width;
+
+    b.top = b.y - b.radius;
+    b.bottom = b.y + b.radius;
+    b.left = b.x - b.radius;
+    b.right = b.x + b.radius;
+
+    return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+}
+
+function update(deltaTime) {
+    if (!gameStarted) return;
+
+    ball.x += ball.velocityX * deltaTime * 100;
+    ball.y += ball.velocityY * deltaTime * 100;
+
+    ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.075;
+
+    if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+        ball.velocityY = -ball.velocityY;
+    }
+
+    let playerOrAI = (ball.x < canvas.width / 2) ? player : ai;
+
+    if (collision(ball, playerOrAI)) {
+        let collidePoint = ball.y - (playerOrAI.y + playerOrAI.height / 2);
+        collidePoint = collidePoint / (playerOrAI.height / 2);
+
+        let angleRad = (Math.PI / 4) * collidePoint;
+
+        let direction = (ball.x < canvas.width / 2) ? 1 : -1;
+        ball.velocityX = direction * ball.speed * Math.cos(angleRad);
+        ball.velocityY = ball.speed * Math.sin(angleRad);
+    }
+
+    if (ball.x - ball.radius < 0) {
+        ai.score++;
+        updateScore();
+        resetBall();
+    } else if (ball.x + ball.radius > canvas.width) {
+        player.score++;
+        updateScore();
+        resetBall();
+    }
+}
+
+function render() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawRect(player.x, player.y, player.width, player.height, player.color, player.glowColor);
+    drawRect(ai.x, ai.y, ai.width, ai.height, ai.color, ai.glowColor);
+
+    drawCircle(ball.x, ball.y, ball.radius, ball.color, ball.glowColor);
+}
+
+function updateScore() {
+    document.getElementById("score").innerHTML = `you ${player.score} <br> cpu ${ai.score}`;
+}
+
+function gameLoop(currentTime) {
+    let deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+    lastTime = currentTime;
+
+    update(deltaTime);
+    render();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+    startScreen.style.display = 'none'; // Hide the start screen
+    gameStarted = true; // Set the game as started
+    requestAnimationFrame(gameLoop);
+}
+
+startScreen.addEventListener('click', startGame);
+</script>
+
+</body>
+</html>
