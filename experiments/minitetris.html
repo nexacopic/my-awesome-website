@@ -59,7 +59,7 @@
 <body>
 
 <canvas id="tetrisCanvas" width="300" height="600"></canvas>
-<div id="score"></div>
+<div id="score">0</div>
 <div id="startScreen">Click to Start</div>
 
 <script>
@@ -239,7 +239,7 @@ function removeLines() {
             board.splice(y, 1);
             board.unshift(Array(colCount).fill(0));
             score += 100;
-            document.getElementById("score").textContent = "${score}";
+            document.getElementById("score").textContent = score;
         }
     }
 }
@@ -264,7 +264,7 @@ function startGame() {
     startScreen.style.display = 'none';
     board = Array.from({ length: rowCount }, () => Array(colCount).fill(0));
     score = 0;
-    document.getElementById("score").textContent = `${score}`;
+    document.getElementById("score").textContent = score;
     spawnTetromino();
     intervalId = setInterval(() => move('down'), 500);
     requestAnimationFrame(gameLoop);
