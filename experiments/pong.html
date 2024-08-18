@@ -112,7 +112,7 @@ function drawRect(x, y, w, h, color, glowColor) {
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
     context.fillRect(x, y, w, h);
-    context.shadowBlur = 0; // Reset shadow blur
+    context.shadowBlur = 0;
 }
 
 function drawCircle(x, y, r, color, glowColor) {
@@ -125,7 +125,7 @@ function drawCircle(x, y, r, color, glowColor) {
     context.arc(x, y, r, 0, Math.PI * 2, false);
     context.closePath();
     context.fill();
-    context.shadowBlur = 0; // Reset shadow blur
+    context.shadowBlur = 0;
 }
 
 function drawText(text, x, y, color) {
@@ -214,7 +214,7 @@ function updateScore() {
 }
 
 function gameLoop(currentTime) {
-    let deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+    let deltaTime = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
 
     update(deltaTime);
@@ -224,8 +224,8 @@ function gameLoop(currentTime) {
 }
 
 function startGame() {
-    startScreen.style.display = 'none'; // Hide the start screen
-    gameStarted = true; // Set the game as started
+    startScreen.style.display = 'none';
+    gameStarted = true;
     requestAnimationFrame(gameLoop);
 }
 
